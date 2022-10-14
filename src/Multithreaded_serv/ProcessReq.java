@@ -34,69 +34,69 @@ public class ProcessReq implements Runnable {
       String[] reqFileExtArr = reqFile.split("\\.");
       String reqFileExt = "";
       if (reqFileExtArr.length > 1) {
-          reqFileExt = reqFileExtArr[1];
+        reqFileExt = reqFileExtArr[1];
       }
       System.out.println(reqFileExt);
       File file = new File(reqFile); //Encapsulate File
       String hello = "";
       if (file.exists() && !file.isDirectory()) { //File exists and is not a directory
 
-          hello += "HTTP/1.1 200 \r\n";
-          if (reqFileExt.equals("html")) { //If File is an HTML file
-              Scanner fin = new Scanner(file); //Set up File Reader (AKA scanner)
+        hello += "HTTP/1.1 200 \r\n";
+        if (reqFileExt.equals("html")) { //If File is an HTML file
+          Scanner fin = new Scanner(file); //Set up File Reader (AKA scanner)
 
-              hello += "Content-Type: text/html\r\n";
-              hello += "Connection: Keep-Alive\r\n";
-              respond(fin, hello, out);			
-          } else if(reqFileExt.equals("ico")) { //if File is an Icon
+          hello += "Content-Type: text/html\r\n";
+          hello += "Connection: Keep-Alive\r\n";
+          respond(fin, hello, out);			
+        } else if(reqFileExt.equals("ico")) { //if File is an Icon
 
-              hello += "Content-Type: image/x-icon\r\n";
-              hello += "Content-Length: " + 108000 + "\r\n";
-              hello += "Transfer-Encoding: identity\r\n";
-              hello += "Connection: Keep-Alive\r\n";
-              hello += "\r\n";
-              respond(hello, file, out);
-          }  else if (reqFileExt.equals("png")) { //if File is a png
+          hello += "Content-Type: image/x-icon\r\n";
+          hello += "Content-Length: " + 108000 + "\r\n";
+          hello += "Transfer-Encoding: identity\r\n";
+          hello += "Connection: Keep-Alive\r\n";
+          hello += "\r\n";
+          respond(hello, file, out);
+        }  else if (reqFileExt.equals("png")) { //if File is a png
 
-              hello += "Content-Type: image/png\r\n";
-              hello += "Connection: Keep-Alive\r\n";
-              hello += "\r\n";
-              respond(hello, file, out);
-          } else if (reqFileExt.equals("css")) { //if File is a CSS file
-              Scanner fin = new Scanner(file);
+          hello += "Content-Type: image/png\r\n";
+          hello += "Connection: Keep-Alive\r\n";
+          hello += "\r\n";
+          respond(hello, file, out);
+        } else if (reqFileExt.equals("css")) { //if File is a CSS file
+          Scanner fin = new Scanner(file);
 
-              hello += "Content-Type: text/css\r\n";
-              hello += "Connection: Keep-Alive\r\n";
-              hello += "\r\n";
-              respond(fin, hello, out);
-          } else if (reqFileExt.equals("js")) { //if File is a javaScript script
-              Scanner fin = new Scanner(file);
+          hello += "Content-Type: text/css\r\n";
+          hello += "Connection: Keep-Alive\r\n";
+          hello += "\r\n";
+          respond(fin, hello, out);
+        } else if (reqFileExt.equals("js")) { //if File is a javaScript script
+          Scanner fin = new Scanner(file);
 
-              hello += "Content-Type: text/javascript\r\n";
-              hello += "Connection: Keep-Alive\r\n";
-              hello += "\r\n";
-              respond(fin, hello, out);
-          } else { //Not in the supported file set, deny access
-              hello = "";
-              hello += "HTTP/1.1 403 \r\n";
-              hello += "Connection: close\r\n";
-              hello += "\r\n";
-              respond(hello,out);
-          }
-      } else if (file.exists() && file.isDirectory()){ //if file is a directory
-
-          System.out.println("Client Requested: " + file.getName()); //log requested directory to console.
+          hello += "Content-Type: text/javascript\r\n";
+          hello += "Connection: Keep-Alive\r\n";
+          hello += "\r\n";
+          respond(fin, hello, out);
+        } else { //Not in the supported file set, deny access
+          hello = "";
           hello += "HTTP/1.1 403 \r\n";
           hello += "Connection: close\r\n";
           hello += "\r\n";
           respond(hello,out);
+        }
+      } else if (file.exists() && file.isDirectory()){ //if file is a directory
+
+        System.out.println("Client Requested: " + file.getName()); //log requested directory to console.
+        hello += "HTTP/1.1 403 \r\n";
+        hello += "Connection: close\r\n";
+        hello += "\r\n";
+        respond(hello,out);
       } else { //otherwise file probably doesn't exist
 
-          System.out.println("Client Requested: " + file.getName()); //log requested file to console.
-          hello += "HTTP/1.1 404 \r\n";
-          hello += "Connection: close\r\n";
-          hello += "\r\n";
-          respond(hello, out);
+        System.out.println("Client Requested: " + file.getName()); //log requested file to console.
+        hello += "HTTP/1.1 404 \r\n";
+        hello += "Connection: close\r\n";
+        hello += "\r\n";
+        respond(hello, out);
       }
       in.close();
       out.close();
@@ -120,22 +120,22 @@ public class ProcessReq implements Runnable {
    */
   public static void respond(Scanner fin, String hello, OutputStream out) throws IOException {
 
-      hello += "\r\n\r\n"; //Make sure there is enough carriage return newlines between the header and the file so the file doesn't get ignored/truncated.
-      if (fin.hasNextLine()) { //If there is more file to read read it.
-          hello += fin.nextLine(); //Append next line of the file to the string.
-      }
+    hello += "\r\n\r\n"; //Make sure there is enough carriage return newlines between the header and the file so the file doesn't get ignored/truncated.
+    if (fin.hasNextLine()) { //If there is more file to read read it.
+      hello += fin.nextLine(); //Append next line of the file to the string.
+    }
 
-      while (fin.hasNextLine()) { //While there is more file to read read it.
-          hello += "\r\n" + fin.nextLine(); //Append next line of the file to the string.
-      }
-      hello += "\r\n"; //Append Carriage Return and Newline to the string.
+    while (fin.hasNextLine()) { //While there is more file to read read it.
+      hello += "\r\n" + fin.nextLine(); //Append next line of the file to the string.
+    }
+    hello += "\r\n"; //Append Carriage Return and Newline to the string.
 
-      System.out.println("Sending: " + hello);
-      byte[] b = hello.getBytes(); //Convert hello to bytes and store resultant bytes in byte array.
-      out.write(b); 
+    System.out.println("Sending: " + hello);
+    byte[] b = hello.getBytes(); //Convert hello to bytes and store resultant bytes in byte array.
+    out.write(b); 
 
-      fin.close();
-      out.close();
+    fin.close();
+    out.close();
   }
 
   /**
@@ -145,10 +145,9 @@ public class ProcessReq implements Runnable {
    * @throws IOException 
    */
   public static void respond(String hello, OutputStream out) throws IOException {
-      System.out.println("Sending: " + hello);
-      byte[] b = hello.getBytes();
-      out.write(b);
-
+    System.out.println("Sending: " + hello);
+    byte[] b = hello.getBytes();
+    out.write(b);
   }
 
   /**
@@ -159,15 +158,15 @@ public class ProcessReq implements Runnable {
    * @throws IOException 
    */
   public static void respond(String hello, File img, OutputStream out) throws IOException {
-      byte[] b = hello.getBytes(); //Convert the String to it's concordant bytes
-      byte[] i = Files.readAllBytes(img.toPath());
+    byte[] b = hello.getBytes(); //Convert the String to it's concordant bytes
+    byte[] i = Files.readAllBytes(img.toPath());
 
-      System.out.println("Sending: " + hello);
-      ByteArrayOutputStream bOut = new ByteArrayOutputStream();
-      bOut.write(b);
-      bOut.write(i);
-      byte[] c = bOut.toByteArray();
+    System.out.println("Sending: " + hello);
+    ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+    bOut.write(b);
+    bOut.write(i);
+    byte[] c = bOut.toByteArray();
 
-      out.write(c);
+    out.write(c);
   }
 }

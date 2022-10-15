@@ -1,7 +1,10 @@
 package multithreaded_serv;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -21,23 +24,20 @@ public class ProcessReq implements Runnable {
   @Override
   public void run() {
     try{
-      System.out.println("Accepted Client");
-
       //Create Socket IO Objects
       Scanner in = new Scanner(socket.getInputStream());
       OutputStream out = socket.getOutputStream();
 
       //Handle GET request.
       String req = in.nextLine(); //Recieve GET request, store as req
-      String reqFile = req.split(" ")[1].substring(1); //Deterimine requested file and then strip the slash from the file name
-      System.out.println(reqFile); //Print Name of Requested File to Console
+      System.out.println("Client: " + req);
+      String reqFile = req.split(" ")[1].substring(1); //Deterimine requested file name and then strip the slash from the file name
       String[] reqFileExtArr = reqFile.split("\\.");
       String reqFileExt = "";
       if (reqFileExtArr.length > 1) {
         reqFileExt = reqFileExtArr[1];
       }
-      System.out.println(reqFileExt);
-      File file = new File(reqFile); //Encapsulate File
+      File file = new File(reqFile); //Create File Object
       String hello = "";
       if (file.exists() && !file.isDirectory()) { //File exists and is not a directory
 
@@ -47,8 +47,38 @@ public class ProcessReq implements Runnable {
 
           hello += "Content-Type: text/html\r\n";
           hello += "Connection: Keep-Alive\r\n";
-          respond(fin, hello, out);			
-        } else if(reqFileExt.equals("ico")) { //if File is an Icon
+          respond(fin, hello, out);
+        } else if (reqFileExt.equals("php")) {
+          
+          Runtime rt = Runtime.getRuntime();
+          String[] commandAndOptions = {"php.exe", "-f", System.getProperty("user.dir") + "\\" + file};
+          Process proc = rt.exec(commandAndOptions);
+          
+          BufferedReader stdIn = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+          BufferedReader stdErr = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+          
+          String line = "";
+          StringBuilder output = new StringBuilder();
+          
+          while ((line = stdIn.readLine()) != null) {
+            output.append(line).append("\r\n");
+          }
+          
+          StringBuilder err = new StringBuilder();
+          
+          while ((line = stdErr.readLine()) != null) {
+            err.append(line);
+          }
+          
+          System.out.println("Output: " + output);
+          System.out.println("Err: " + err);
+          
+          hello += "Content-Type: text/html\r\n";
+          hello += "Connection: Keep-Alive\r\n";
+          hello += output.toString();
+          respond(hello, out);
+          
+        } else if (reqFileExt.equals("ico")) { //if File is an Icon
 
           hello += "Content-Type: image/x-icon\r\n";
           hello += "Content-Length: " + 108000 + "\r\n";
@@ -85,14 +115,12 @@ public class ProcessReq implements Runnable {
         }
       } else if (file.exists() && file.isDirectory()){ //if file is a directory
 
-        System.out.println("Client Requested: " + file.getName()); //log requested directory to console.
         hello += "HTTP/1.1 403 \r\n";
         hello += "Connection: close\r\n";
         hello += "\r\n";
-        respond(hello,out);
+        respond(hello, out);
       } else { //otherwise file probably doesn't exist
 
-        System.out.println("Client Requested: " + file.getName()); //log requested file to console.
         hello += "HTTP/1.1 404 \r\n";
         hello += "Connection: close\r\n";
         hello += "\r\n";
@@ -103,10 +131,10 @@ public class ProcessReq implements Runnable {
       socket.close();
 
     } catch (IOException e) {
-      System.out.println("IOException has Occurred");
+      System.out.println("Server: IOException has Occurred");
       System.out.println(e);
     } catch (Exception e) {
-      System.out.println("Exception Happened: ");
+      System.out.println("Server: Exception Happened: ");
       System.out.println(e);
     }
   }
@@ -130,14 +158,14 @@ public class ProcessReq implements Runnable {
     }
     hello += "\r\n"; //Append Carriage Return and Newline to the string.
 
-    System.out.println("Sending: " + hello);
+    System.out.println("Server Response: " + hello);
     byte[] b = hello.getBytes(); //Convert hello to bytes and store resultant bytes in byte array.
     out.write(b); 
 
     fin.close();
     out.close();
   }
-
+  
   /**
    * Sends one of the HTTP response headers such as 403 or 404 to the specified OutStream connection.
    * @param hello String containing the HTTP response header data.
@@ -145,7 +173,7 @@ public class ProcessReq implements Runnable {
    * @throws IOException 
    */
   public static void respond(String hello, OutputStream out) throws IOException {
-    System.out.println("Sending: " + hello);
+    System.out.println("Server Response: " + hello);
     byte[] b = hello.getBytes();
     out.write(b);
   }
@@ -161,7 +189,7 @@ public class ProcessReq implements Runnable {
     byte[] b = hello.getBytes(); //Convert the String to it's concordant bytes
     byte[] i = Files.readAllBytes(img.toPath());
 
-    System.out.println("Sending: " + hello);
+    System.out.println("Server Response: " + hello);
     ByteArrayOutputStream bOut = new ByteArrayOutputStream();
     bOut.write(b);
     bOut.write(i);

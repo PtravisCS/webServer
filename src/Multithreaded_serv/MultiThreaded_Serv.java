@@ -14,7 +14,7 @@ public class MultiThreaded_Serv {
     
     try (ServerSocket servSock = new ServerSocket(8080);){ //This feels messy as the socket is thrown away and re-created every time the program loops, but I couldn't find a better way to do it.
       while(run) {
-          Socket socket = servSock.accept(); 
+          Socket socket = servSock.accept(); //Wait for connection and accept it
           ProcessReq procReq = new ProcessReq(socket); //Create main server class and feed it the previously created socket.
           Thread t = new Thread(procReq); //Create new thread using the main server class
           t.start(); //start the thread

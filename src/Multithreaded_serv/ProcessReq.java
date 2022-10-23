@@ -3,7 +3,6 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -23,12 +22,9 @@ public class ProcessReq implements Runnable {
 
   @Override
   public void run() {
-    try{
-      //Create Socket IO Objects
-      Scanner in = new Scanner(socket.getInputStream());
-      OutputStream out = socket.getOutputStream();
+    
+    try (Scanner in = new Scanner(socket.getInputStream()); OutputStream out = socket.getOutputStream()) {
 
-      //Handle GET request.
       String req = in.nextLine(); //Recieve GET request, store as req
       System.out.println("Client: " + req);
       String reqFile = req.split(" ")[1].substring(1); //Deterimine requested file name and then strip the slash from the file name
@@ -37,95 +33,48 @@ public class ProcessReq implements Runnable {
       if (reqFileExtArr.length > 1) {
         reqFileExt = reqFileExtArr[1];
       }
+      System.out.println(reqFileExt);
       File file = new File(reqFile); //Create File Object
+      System.out.println(file);
       String hello = "";
       if (file.exists() && !file.isDirectory()) { //File exists and is not a directory
 
         hello += "HTTP/1.1 200 \r\n";
-        if (reqFileExt.equals("html")) { //If File is an HTML file
-          Scanner fin = new Scanner(file); //Set up File Reader (AKA scanner)
+        Scanner fin = new Scanner(file); //Set up File Reader (AKA scanner)
 
-          hello += "Content-Type: text/html\r\n";
-          hello += "Connection: Keep-Alive\r\n";
-          respond(fin, hello, out);
-        } else if (reqFileExt.equals("php")) {
-          
-          Runtime rt = Runtime.getRuntime();
-          String[] commandAndOptions = {"php.exe", "-f", System.getProperty("user.dir") + "\\" + file};
-          Process proc = rt.exec(commandAndOptions);
-          
-          BufferedReader stdIn = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-          BufferedReader stdErr = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-          
-          String line = "";
-          StringBuilder output = new StringBuilder();
-          
-          while ((line = stdIn.readLine()) != null) {
-            output.append(line).append("\r\n");
-          }
-          
-          StringBuilder err = new StringBuilder();
-          
-          while ((line = stdErr.readLine()) != null) {
-            err.append(line);
-          }
-          
-          System.out.println("Output: " + output);
-          System.out.println("Err: " + err);
-          
-          hello += "Content-Type: text/html\r\n";
-          hello += "Connection: Keep-Alive\r\n";
-          hello += output.toString();
-          respond(hello, out);
-          
-        } else if (reqFileExt.equals("ico")) { //if File is an Icon
-
-          hello += "Content-Type: image/x-icon\r\n";
-          hello += "Content-Length: " + 108000 + "\r\n";
-          hello += "Transfer-Encoding: identity\r\n";
-          hello += "Connection: Keep-Alive\r\n";
-          hello += "\r\n";
-          respond(hello, file, out);
-        }  else if (reqFileExt.equals("png")) { //if File is a png
-
-          hello += "Content-Type: image/png\r\n";
-          hello += "Connection: Keep-Alive\r\n";
-          hello += "\r\n";
-          respond(hello, file, out);
-        } else if (reqFileExt.equals("css")) { //if File is a CSS file
-          Scanner fin = new Scanner(file);
-
-          hello += "Content-Type: text/css\r\n";
-          hello += "Connection: Keep-Alive\r\n";
-          hello += "\r\n";
-          respond(fin, hello, out);
-        } else if (reqFileExt.equals("js")) { //if File is a javaScript script
-          Scanner fin = new Scanner(file);
-
-          hello += "Content-Type: text/javascript\r\n";
-          hello += "Connection: Keep-Alive\r\n";
-          hello += "\r\n";
-          respond(fin, hello, out);
-        } else { //Not in the supported file set, deny access
-          hello = "";
-          hello += "HTTP/1.1 403 \r\n";
-          hello += "Connection: close\r\n";
-          hello += "\r\n";
-          respond(hello,out);
+        switch(reqFileExt) {
+          case "html":
+            text(fin, hello, out, "html");
+            break;
+          case "php":
+            php(out, hello, file);
+            break;
+          case "ico":
+            ico(out, hello, file);
+            break;
+          case "png":
+            picture(out, hello, file, "png");
+            break;
+          case "jpg":
+            picture(out, hello, file, "jpg");
+            break;
+          case "css":
+            text(fin, hello, out, "css");
+            break;
+          case "js":
+            text(fin, hello, out, "javascript");
+            break;
+          default:
+            httpStatusCode(out, hello, "403");
+            break;
         }
+
       } else if (file.exists() && file.isDirectory()){ //if file is a directory
-
-        hello += "HTTP/1.1 403 \r\n";
-        hello += "Connection: close\r\n";
-        hello += "\r\n";
-        respond(hello, out);
+        httpStatusCode(out, hello, "403");
       } else { //otherwise file probably doesn't exist
-
-        hello += "HTTP/1.1 404 \r\n";
-        hello += "Connection: close\r\n";
-        hello += "\r\n";
-        respond(hello, out);
+        httpStatusCode(out, hello, "404");
       }
+
       in.close();
       out.close();
       socket.close();
@@ -137,6 +86,81 @@ public class ProcessReq implements Runnable {
       System.out.println("Server: Exception Happened: ");
       System.out.println(e);
     }
+  }
+  
+  private void text(Scanner fin, String hello, OutputStream out, String textType) throws IOException {
+
+    hello += "Content-Type: text/" + textType + "\r\n";
+    hello += "Connection: Keep-Alive\r\n";
+    respond(fin, hello, out);
+
+  }
+  
+  private void text(String hello, OutputStream out, String file, String textType) throws IOException {
+    
+    hello += "Content-Type: text/" + textType + "\r\n";
+    hello += "Connection: Keep-Alive\r\n";
+    hello += file;
+    respond(hello, out);
+    
+  }
+
+  private void httpStatusCode(OutputStream out, String hello, String statusCode) throws IOException {
+
+    hello += "HTTP/1.1 " + statusCode + " \r\n";
+    hello += "Connection: close\r\n";
+    hello += "\r\n";
+    respond(hello, out);
+    
+  }
+  
+  private void php(OutputStream out, String hello, File file) throws IOException {
+    Runtime rt = Runtime.getRuntime();
+    String[] commandAndOptions = {"php.exe", "-f", System.getProperty("user.dir") + "\\" + file};
+    Process proc = rt.exec(commandAndOptions);
+
+    BufferedReader stdIn = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+    BufferedReader stdErr = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+
+    String line;
+    StringBuilder output = new StringBuilder();
+
+    while ((line = stdIn.readLine()) != null) {
+      output.append(line).append("\r\n");
+    }
+
+    StringBuilder err = new StringBuilder();
+
+    while ((line = stdErr.readLine()) != null) {
+      err.append(line);
+    }
+
+    if (!"".equals(err.toString())) {
+      System.out.println("Err: " + err);
+    }
+
+    text(hello, out, output.toString(), "html");
+
+  }
+  
+  private void picture(OutputStream out, String hello, File file, String imgType) throws IOException {
+
+    hello += "Content-Type: image/" + imgType + "\r\n";
+    hello += "Connection: Keep-Alive\r\n";
+    hello += "\r\n";
+    respond(hello, file, out);
+
+  }
+  
+  private void ico(OutputStream out, String hello, File file) throws IOException {
+          
+    hello += "Content-Type: image/x-icon\r\n";
+    hello += "Content-Length: " + 108000 + "\r\n";
+    hello += "Transfer-Encoding: identity\r\n";
+    hello += "Connection: Keep-Alive\r\n";
+    hello += "\r\n";
+    respond(hello, file, out);
+
   }
 
   /**
@@ -167,7 +191,7 @@ public class ProcessReq implements Runnable {
   }
   
   /**
-   * Sends one of the HTTP response headers such as 403 or 404 to the specified OutStream connection.
+   * Used to output a pre-defined string.
    * @param hello String containing the HTTP response header data.
    * @param out OutputStream connected to the client.
    * @throws IOException 

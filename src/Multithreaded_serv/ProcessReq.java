@@ -88,6 +88,14 @@ public class ProcessReq implements Runnable {
     }
   }
   
+  /**
+   * Used for sending a text string to client.
+   * @param fin
+   * @param hello
+   * @param out
+   * @param textType
+   * @throws IOException 
+   */
   private void text(Scanner fin, String hello, OutputStream out, String textType) throws IOException {
 
     hello += "Content-Type: text/" + textType + "\r\n";
@@ -96,6 +104,15 @@ public class ProcessReq implements Runnable {
 
   }
   
+  /**
+   * Used for responding to requests for text based files such as HTML, CSS, JS, etc.
+   * Will open and read the file and post it to client.
+   * @param hello
+   * @param out
+   * @param file
+   * @param textType
+   * @throws IOException 
+   */
   private void text(String hello, OutputStream out, String file, String textType) throws IOException {
     
     hello += "Content-Type: text/" + textType + "\r\n";
@@ -105,6 +122,13 @@ public class ProcessReq implements Runnable {
     
   }
 
+  /**
+   * Used to send a HTTP status code to client.
+   * @param out OutputStream used to respond to client.
+   * @param hello String used to represent message to client.
+   * @param statusCode String containing the status code to respond with.
+   * @throws IOException 
+   */
   private void httpStatusCode(OutputStream out, String hello, String statusCode) throws IOException {
 
     hello += "HTTP/1.1 " + statusCode + " \r\n";
@@ -113,7 +137,15 @@ public class ProcessReq implements Runnable {
     respond(hello, out);
     
   }
-  
+  /**
+   * Used to handle requests for PHP scripts.
+   * Requires that PHP be installed on the target system and be in the path.
+   * Runs requested file using PHP then sends response to client.
+   * @param out OutputStream used to respond to client.
+   * @param hello String used represent message to client.
+   * @param file File to parse using PHP.
+   * @throws IOException 
+   */
   private void php(OutputStream out, String hello, File file) throws IOException {
     Runtime rt = Runtime.getRuntime();
     String[] commandAndOptions = {"php.exe", "-f", System.getProperty("user.dir") + "\\" + file};
@@ -143,6 +175,14 @@ public class ProcessReq implements Runnable {
 
   }
   
+  /**
+   * Used to handle incoming request for an image file.
+   * @param out OutputStream used to respond to client.
+   * @param hello String used represent message to client.
+   * @param file File to send to client.
+   * @param imgType String representing the image's Content-Type
+   * @throws IOException 
+   */
   private void picture(OutputStream out, String hello, File file, String imgType) throws IOException {
 
     hello += "Content-Type: image/" + imgType + "\r\n";
@@ -152,6 +192,13 @@ public class ProcessReq implements Runnable {
 
   }
   
+  /**
+   * Used to handle incoming requests for an icon file.
+   * @param out OutputStream used to respond to client.
+   * @param hello String used to represent message to client.
+   * @param file File to be sent to client.
+   * @throws IOException 
+   */
   private void ico(OutputStream out, String hello, File file) throws IOException {
           
     hello += "Content-Type: image/x-icon\r\n";
